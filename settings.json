@@ -1,0 +1,13 @@
+{
+  "volume_db": -6.101694915254237,
+  "resolution": "1080x1080",
+  "background_mode": "blur",
+  "cropping": false,
+  "font_size": 27,
+  "font_family": "Calibri",
+  "text_style": "black_box",
+  "auto_position_photos": true,
+  "mute_video_audio": true,
+  "output_folder": "C:/Users/George/Desktop/agelies",
+  "slide_duration": 4
+}

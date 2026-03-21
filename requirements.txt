@@ -1,0 +1,5 @@
+moviepy==1.0.3
+pillow>=10.0.0
+numpy>=1.24.0
+tkinterdnd2>=0.3.0
+windnd>=1.0.2

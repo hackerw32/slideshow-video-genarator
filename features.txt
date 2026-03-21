@@ -1,0 +1,6 @@
+Features:                                                                                                               - Video & εικόνες με auto fit (άσπρα/μαύρα/blurred background ή cropping)
+  - Αυτόματο tracking μουσικής με refresh button                                                                          - Text editor με markdown bold (απλούστερο από rich text editor)
+  - Preview με button + slider (όχι real-time)
+  - Settings που θυμούνται: volume dB, resolution (1080x1080 ή 1920x1080), background mode, cropping
+  - Save/Load projects με αναζήτηση
+  - Unsaved changes warning
