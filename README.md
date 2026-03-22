@@ -1,83 +1,140 @@
-# Slideshow Video Creator
+# Slideshow Video Creator Pro (Beta v2)
 
-Εφαρμογή δημιουργίας slideshow videos με μουσική για αγγελίες.
+Επαγγελματική εφαρμογή δημιουργίας slideshow videos με μουσική για αγγελίες ακινήτων.
+Συνδυάζει εικόνες, videos, κείμενο και μουσική για να φτιάξεις ελκυστικά videos για social media χωρίς πρόγραμμα επεξεργασίας βίντεο.
 
 ## Εγκατάσταση
 
-1. Εγκατάσταση Python 3.8+ (αν δεν το έχεις ήδη)
+1. Python 3.8+
 
 2. Εγκατάσταση dependencies:
 ```bash
 pip install -r requirements.txt
 ```
 
-## Χρήση
+## Εκτέλεση
 
-1. Εκτέλεση της εφαρμογής:
 ```bash
-python slideshow_app.py
+python slideshow_app_beta.py
 ```
 
-2. **Προσθήκη Media:**
-   - Κλικ στα κουμπιά "Add Videos" και "Add Images"
-   - Τα videos εμφανίζονται πρώτα, μετά οι εικόνες
+## Χρήση
 
-3. **Κείμενο:**
-   - Γράψε το κείμενο της αγγελίας στο text field
+1. **Προσθήκη Media:**
+   - Κλικ στα κουμπιά "+ Video" και "+ Image"
+   - Drag & Drop αρχεία απευθείας στη βιβλιοθήκη (αν είναι εγκατεστημένο tkinterdnd2)
+   - Δεξί κλικ σε κάθε media για Delete, Move, Change Position
+
+2. **Κείμενο:**
+   - Κλικ "Text Input" για να ανοίξει το παράθυρο κειμένου
    - Χρησιμοποίησε `**κείμενο**` για bold
+   - Υποστηρίζει Ελληνικούς χαρακτήρες και πολλές γραμμές
 
-4. **Ρυθμίσεις:**
-   - **Settings > Audio Settings:** Ρύθμιση έντασης ήχου (dB)
-   - **Settings > Video Settings:** Επιλογή ανάλυσης (1080x1080 ή 1920x1080), background mode, cropping
-   - **Settings > Text Settings:** Μέγεθος και γραμματοσειρά κειμένου
+3. **Ρυθμίσεις:**
+   - **Settings > Audio & Music Settings:** Volume (dB), mute video audio, music folder, crossfade, trim silence
+   - **Settings > Video Settings:** Ανάλυση (1080x1080 ή 1920x1080), background mode, cropping, slide duration, auto position
+   - **Settings > Text Settings:** Font size, font family
 
-5. **Preview:**
-   - Κλικ "Generate Preview" για να δεις το αποτέλεσμα
-   - Χρησιμοποίησε το slider για navigation
+4. **Preview:**
+   - Κλικ "Generate Preview Frame" για να δεις την πρώτη εικόνα/frame με κείμενο
 
-6. **Export:**
-   - Διάλεξε output folder και όνομα αρχείου
-   - Κλικ "Export Video"
+5. **Export:**
+   - Διάλεξε output folder, δώσε όνομα project
+   - Κλικ "GENERATE VIDEO"
 
 ## Features
 
+✅ Media library με thumbnail/icon view και list view
+✅ Drag & Drop media files
+✅ Reorder media με δεξί κλικ (Move Up/Down, Change Position, Delete)
+✅ Ξεχωριστό παράθυρο text input (με clipboard paste)
 ✅ Αυτόματο tracking μουσικής (δεν επαναλαμβάνει τραγούδια)
-✅ Refresh music list για νέα τραγούδια
-✅ Fit χωρίς cropping με επιλογές background (άσπρο, μαύρο, blurred)
-✅ Preview με slider
-✅ Save/Load projects με αναζήτηση
-✅ Αυτόματο chaining μουσικής (αν δεν φτάνει ένα τραγούδι)
-✅ Volume control με memory (dB)
+✅ Configurable music folder
+✅ Crossfade μεταξύ τραγουδιών
+✅ Auto trim silence
+✅ Fit χωρίς cropping με επιλογές background (λευκό, μαύρο, blurred)
+✅ Enable Cropping (Fill Frame)
+✅ Auto position photos/videos (κείμενο κάτω, εικόνα πάνω)
+✅ Slide duration ρυθμιζόμενο ανά project
+✅ Preview frame γρήγορα
+✅ Save/Load projects
+✅ Volume control (dB)
 ✅ Markdown bold support (**text**)
-✅ Warning για unsaved changes
+✅ Mute original video audio
 
 ## Μουσική
 
-- Τα τραγούδια πρέπει να είναι στον φάκελο `music/`
-- Υποστηριζόμενη μορφή: .mp4 (audio)
-- Χρησιμοποίησε **Music > Refresh Music List** μετά από προσθήκη νέων τραγουδιών
-- Χρησιμοποίησε **Music > Reset Used Music** για να ξεκινήσεις από την αρχή
+- Τοποθέτησε αρχεία `.mp4` (με audio) στον φάκελο `music/` (ή επίλεξε άλλο φάκελο στα Audio Settings)
+- **Settings > Audio & Music Settings > Refresh Music List** για νέα τραγούδια
+- **Reset Used Music** για να ξεκινήσεις από την αρχή
 
-## Shortcuts
+## Διαχείριση Projects
 
-- File > New Project: Νέο project
-- File > Load Project: Φόρτωση project με αναζήτηση
-- File > Save Project: Αποθήκευση project
+- **File > New Project** – Νέο κενό project
+- **File > Save Project** – Αποθήκευση στον φάκελο `projects/`
+- **File > Load Project** – Φόρτωση αποθηκευμένου project
 
-## Προτάσεις
+## Υποστηριζόμενες μορφές
 
-1. Δοκίμασε πρώτα με λίγα media files για να δεις το αποτέλεσμα
-2. Χρησιμοποίησε το preview πριν το export (πιο γρήγορο)
-3. Κάνε save το project πριν το export
-4. Για μεγάλα projects, το export μπορεί να πάρει χρόνο - περίμενε υπομονετικά
+| Τύπος  | Μορφές                              |
+|--------|-------------------------------------|
+| Video  | .mp4, .avi, .mov, .mkv              |
+| Image  | .jpg, .jpeg, .png, .bmp             |
+| Music  | .mp4 (audio track)                  |
 
 ## Troubleshooting
 
-**Πρόβλημα:** Το preview δεν δουλεύει
-**Λύση:** Βεβαιώσου ότι τα media files υπάρχουν και είναι έγκυρα
+**Το βίντεο στο export εμφανίζεται μαύρο**
+→ Βεβαιώσου ότι χρησιμοποιείς την τελευταία έκδοση (bug διορθώθηκε)
 
-**Πρόβλημα:** Η μουσική δεν παίζει
-**Λύση:** Έλεγξε ότι τα mp4 files στον φάκελο music έχουν audio track
+**Drag & drop δεν λειτουργεί**
+→ `pip install tkinterdnd2`
 
-**Πρόβλημα:** Το κείμενο δεν φαίνεται
-**Λύση:** Δοκίμασε μεγαλύτερο font size στα Text Settings
+**Το κείμενο δεν γίνεται bold**
+→ Χρησιμοποίησε `**κείμενο**` χωρίς κενά μεταξύ `**` και κειμένου
+
+**Η μουσική δεν ακούγεται**
+→ Έλεγξε ότι τα `.mp4` στο music folder έχουν audio track
+
+**Το export παγώνει**
+→ Περίμενε — μεγάλα projects παίρνουν χρόνο. Δες την progress bar.
+
+## Τεχνικές πληροφορίες
+
+- Γλώσσα: Python 3.8+
+- GUI: Tkinter
+- Video Processing: FFmpeg (subprocess) + MoviePy
+- Image Processing: Pillow (PIL)
+- Codec: H.264 (libx264) / AAC
+
+## Δομή φακέλων
+
+```
+slideshow-video-genarator/
+├── slideshow_app_beta.py   # Κύρια εφαρμογή (v2 Beta)
+├── slideshow_app.py        # Πρώτη έκδοση (v1)
+├── requirements.txt
+├── settings.json
+├── music_tracker.json
+├── music/                  # Μουσική (.mp4 files)
+├── projects/               # Αποθηκευμένα projects (.json)
+└── temp/                   # Προσωρινά αρχεία (auto-created)
+```
+
+## Versions
+
+**v2 Beta (Current)**
+- Media library με thumbnail/icon view
+- Drag & drop + reorder media
+- Ξεχωριστό text input window
+- Configurable music folder
+- Crossfade & trim silence
+- Auto position για photos και videos
+- Ρυθμιζόμενο slide duration
+- Διόρθωση: video clips εμφανίζονται σωστά στο export
+
+**v1**
+- Βασική δημιουργία slideshow
+- Music tracking
+- Project management
+- Multiple video settings

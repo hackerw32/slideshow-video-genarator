@@ -126,6 +126,11 @@ class SlideshowApp:
             self.music_tracker["used_music"].append(name)
             self.save_music_tracker()
 
+    def reset_music_tracker(self):
+        self.music_tracker["used_music"] = []
+        self.save_music_tracker()
+        messagebox.showinfo("Reset", "Music tracker reset. All songs are available again.")
+
     def setup_menu(self):
         menubar = tk.Menu(self.root)
         self.root.config(menu=menubar)
@@ -609,7 +614,7 @@ class SlideshowApp:
                 draw.text((x, y), txt, font=f, fill="black")
                 x += f.getlength(txt)
             y += lh
-        return img.convert("RGB")
+        return img
 
     def export_video(self):
         n = self.name_var.get().strip()
@@ -668,7 +673,14 @@ class SlideshowApp:
                     if self.settings["cropping"]:
                         vf = f"scale={width}:{height}:force_original_aspect_ratio=increase,crop={width}:{height}"
                     
-                    cmd = ['ffmpeg', '-y', '-i', str(path), '-i', str(bg_p), '-i', str(txt_p), '-filter_complex', f'[0:v]{vf},format=yuv420p[v];[1:v][v]overlay=(W-w)/2:(H-h)/2[base];[base][2:v]overlay=0:0', '-c:v', 'libx264', '-preset', 'fast', '-crf', '18', '-r', '30', '-pix_fmt', 'yuv420p', '-an', str(clip_path)]
+                    cmd = ['ffmpeg', '-y',
+                           '-i', str(path),
+                           '-loop', '1', '-i', str(bg_p),
+                           '-loop', '1', '-i', str(txt_p),
+                           '-filter_complex',
+                           f'[0:v]{vf},format=yuv420p[v];[1:v][v]overlay=(W-w)/2:(H-h)/2[base];[base][2:v]overlay=0:0',
+                           '-c:v', 'libx264', '-preset', 'fast', '-crf', '18', '-r', '30', '-pix_fmt', 'yuv420p',
+                           '-t', str(dur), '-an', str(clip_path)]
                     subprocess.run(cmd, capture_output=True)
 
                 if clip_path.exists():
