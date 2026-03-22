@@ -70,7 +70,7 @@ class SlideshowApp:
             "auto_position_videos": False, "mute_video_audio": True,
             "output_folder": str(self.app_dir), "slide_duration": 3,
             "music_folder": str(self.app_dir / "music"), "crossfade_duration": 3, "trim_silence": True,
-            "transition_effect": "fade", "transition_duration": 0.7,
+            "transition_effect": "fade", "transition_duration": 0.7, "random_transitions": [],
             "watermark_enabled": False, "watermark_path": "", "watermark_position": "bottom_right",
             "watermark_size_pct": 15, "watermark_opacity": 80
         }
@@ -218,7 +218,6 @@ class SlideshowApp:
     def show_video_settings(self):
         dialog = tk.Toplevel(self.root)
         dialog.title("Video Settings")
-        dialog.geometry("500x760")
         dialog.transient(self.root)
         dialog.grab_set()
 
@@ -251,20 +250,25 @@ class SlideshowApp:
         TRANSITION_EFFECTS = [
             ("None", "none"), ("Fade", "fade"), ("Fade to Black", "fadeblack"), ("Fade to White", "fadewhite"),
             ("Wipe Left", "wipeleft"), ("Wipe Right", "wiperight"), ("Wipe Up", "wipeup"), ("Wipe Down", "wipedown"),
-            ("Slide Left", "slideleft"), ("Slide Right", "slideright"),
             ("Smooth Left", "smoothleft"), ("Smooth Right", "smoothright"),
-            ("Random", "random")
         ]
-        effect_labels = [lbl for lbl, _ in TRANSITION_EFFECTS]
-        effect_values = [val for _, val in TRANSITION_EFFECTS]
+        RANDOM_EFFECTS = [
+            ("Fade", "fade"), ("Fade to Black", "fadeblack"), ("Fade to White", "fadewhite"),
+            ("Wipe Left", "wipeleft"), ("Wipe Right", "wiperight"), ("Wipe Up", "wipeup"), ("Wipe Down", "wipedown"),
+            ("Smooth Left", "smoothleft"), ("Smooth Right", "smoothright"),
+        ]
+
         current_effect = self.settings.get("transition_effect", "fade")
+        is_random = current_effect == "random"
         current_label = next((lbl for lbl, val in TRANSITION_EFFECTS if val == current_effect), "Fade")
 
         tr_f = ttk.Frame(dialog)
         tr_f.pack(fill='x', padx=30, pady=5)
         ttk.Label(tr_f, text="Effect:").pack(side='left')
         tr_effect_var = tk.StringVar(value=current_label)
-        tr_combo = ttk.Combobox(tr_f, textvariable=tr_effect_var, values=effect_labels, state='readonly', width=18)
+        tr_combo = ttk.Combobox(tr_f, textvariable=tr_effect_var,
+                                values=[lbl for lbl, _ in TRANSITION_EFFECTS],
+                                state='disabled' if is_random else 'readonly', width=18)
         tr_combo.pack(side='left', padx=10)
 
         td_f = ttk.Frame(dialog)
@@ -275,14 +279,56 @@ class SlideshowApp:
                                    format="%.1f")
         tr_dur_spin.pack(side='left', padx=10)
 
+        # Random toggle + sub-options container
+        saved_random = self.settings.get("random_transitions", [])
+        random_effect_vars = {}
+        for lbl, val in RANDOM_EFFECTS:
+            is_sel = (not saved_random) or (val in saved_random)
+            random_effect_vars[val] = tk.BooleanVar(value=is_sel)
+
+        random_var = tk.BooleanVar(value=is_random)
+        random_container = ttk.Frame(dialog)
+        random_container.pack(fill='x', padx=30)
+
+        random_sub_frame = ttk.LabelFrame(random_container, text="Εφέ που συμπεριλαμβάνονται στο Random")
+
+        for lbl, val in RANDOM_EFFECTS:
+            ttk.Checkbutton(random_sub_frame, text=lbl, variable=random_effect_vars[val]).pack(anchor='w', padx=10, pady=1)
+
+        def toggle_random():
+            if random_var.get():
+                tr_combo.config(state='disabled')
+                random_sub_frame.pack(fill='x', pady=(5, 0))
+                dialog.geometry("500x980")
+            else:
+                tr_combo.config(state='readonly')
+                random_sub_frame.pack_forget()
+                dialog.geometry("500x800")
+
+        ttk.Checkbutton(random_container, text="Random", variable=random_var, command=toggle_random).pack(anchor='w', pady=5)
+
+        if is_random:
+            random_sub_frame.pack(fill='x', pady=(5, 0))
+            dialog.geometry("500x980")
+        else:
+            dialog.geometry("500x800")
+
         def save():
-            chosen_label = tr_effect_var.get()
-            chosen_value = next((val for lbl, val in TRANSITION_EFFECTS if lbl == chosen_label), "fade")
+            if random_var.get():
+                chosen_value = "random"
+                selected_randoms = [val for val, var in random_effect_vars.items() if var.get()]
+                if not selected_randoms:
+                    selected_randoms = [val for _, val in RANDOM_EFFECTS]
+            else:
+                chosen_label = tr_effect_var.get()
+                chosen_value = next((val for lbl, val in TRANSITION_EFFECTS if lbl == chosen_label), "fade")
+                selected_randoms = self.settings.get("random_transitions", [])
             self.settings.update({
                 "resolution": res_var.get(), "background_mode": bg_var.get(),
                 "cropping": crop_var.get(), "slide_duration": dur_var.get(),
                 "auto_position_photos": pos_img_var.get(), "auto_position_videos": pos_vid_var.get(),
-                "transition_effect": chosen_value, "transition_duration": round(tr_dur_var.get(), 1)
+                "transition_effect": chosen_value, "transition_duration": round(tr_dur_var.get(), 1),
+                "random_transitions": selected_randoms
             })
             self.save_settings()
             dialog.destroy()
@@ -742,7 +788,8 @@ class SlideshowApp:
         cur_w = 0
         for is_b, txt in parts:
             f = f_bold if is_b else font
-            for p in txt.split('\n'):
+            paragraphs = txt.split('\n')
+            for idx, p in enumerate(paragraphs):
                 for word in p.split():
                     ww = f.getlength(word + " ")
                     if cur_w + ww > w-60 and cur_line:
@@ -751,10 +798,16 @@ class SlideshowApp:
                         cur_w = 0
                     cur_line.append((is_b, word + " "))
                     cur_w += ww
-                if cur_line:
-                    lines.append((cur_line, cur_w))
-                    cur_line = []
-                    cur_w = 0
+                # Flush only on actual newline (not at the end of the last paragraph)
+                if idx < len(paragraphs) - 1:
+                    if cur_line:
+                        lines.append((cur_line, cur_w))
+                        cur_line = []
+                        cur_w = 0
+        if cur_line:
+            lines.append((cur_line, cur_w))
+            cur_line = []
+            cur_w = 0
         
         lh = fs + 5
         y = h - (len(lines) * lh) - 15
@@ -775,8 +828,7 @@ class SlideshowApp:
         effect = self.settings.get("transition_effect", "fade")
         td = self.settings.get("transition_duration", 0.7)
         XFADE_EFFECTS = ["fade", "fadeblack", "fadewhite", "wipeleft", "wiperight",
-                         "wipeup", "wipedown", "slideleft", "slideright",
-                         "smoothleft", "smoothright"]
+                         "wipeup", "wipedown", "smoothleft", "smoothright"]
 
         if effect == "none" or len(clip_files) <= 1:
             concat_file = temp_dir / "list.txt"
@@ -798,7 +850,13 @@ class SlideshowApp:
         for i in range(1, n):
             cumulative += clip_durations[i - 1]
             offset = max(0.0, cumulative - i * td)
-            eff = random.choice(XFADE_EFFECTS) if effect == "random" else effect
+            if effect == "random":
+                random_pool = self.settings.get("random_transitions", [])
+                if not random_pool:
+                    random_pool = XFADE_EFFECTS
+                eff = random.choice(random_pool)
+            else:
+                eff = effect
             out_label = f"[x{i}]" if i < n - 1 else ""
             filter_parts.append(
                 f"{prev_label}[{i}:v]xfade=transition={eff}:duration={td}:offset={offset:.3f}{out_label}"
