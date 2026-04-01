@@ -975,6 +975,20 @@ class SlideshowApp:
                     subprocess.run(cmd, capture_output=True)
                     clip_dur = float(dur)
 
+                    # The first frame of a video clip renders only the blurred background.
+                    # Skip it so playback starts from the second frame.
+                    if i == 0 and clip_path.exists():
+                        trimmed_path = temp_dir / f"clip_{i:04d}_t.mp4"
+                        subprocess.run(['ffmpeg', '-y', '-i', str(clip_path),
+                                        '-vf', "select='gte(n,1)',setpts=PTS-STARTPTS",
+                                        '-c:v', 'libx264', '-preset', 'fast', '-crf', '18',
+                                        '-r', '30', '-pix_fmt', 'yuv420p', '-an',
+                                        str(trimmed_path)], capture_output=True)
+                        if trimmed_path.exists():
+                            clip_path.unlink()
+                            trimmed_path.rename(clip_path)
+                            clip_dur -= 1 / 30
+
                 if clip_path.exists():
                     clip_files.append(clip_path)
                     clip_durations.append(clip_dur)
