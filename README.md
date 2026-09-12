@@ -1,140 +1,189 @@
-# Slideshow Video Creator Pro (Beta v2)
+# Slideshow Video Creator Pro — v3
 
-Επαγγελματική εφαρμογή δημιουργίας slideshow videos με μουσική για αγγελίες ακινήτων.
-Συνδυάζει εικόνες, videos, κείμενο και μουσική για να φτιάξεις ελκυστικά videos για social media χωρίς πρόγραμμα επεξεργασίας βίντεο.
+Εφαρμογή για Windows (Python + Tkinter) που φτιάχνει αυτόματα **slideshow βίντεο MP4** από φωτογραφίες και βίντεο:
+ταιριάζει κάθε εικόνα στο κάδρο, προσθέτει κείμενο, εφέ μετάβασης, watermark και μουσική — για αγγελίες ακινήτων
+και social media, χωρίς πρόγραμμα μοντάζ.
+
+Αρχείο εφαρμογής: **`slideshow_app v3.py`**
+
+---
+
+## Τι κάνει
+
+### Media
+- Προσθήκη **φωτογραφιών και βίντεο** με τα κουμπιά `+ Video` / `+ Image` ή με **drag & drop** στη βιβλιοθήκη.
+- Προβολή σε **Icons** (μικρογραφίες) ή **List**.
+- Δεξί κλικ σε στοιχείο: **Delete, Change Position, Move Left/Up, Move Right/Down**.
+
+### Κείμενο
+- **Δύο ξεχωριστά κείμενα**: αριστερά για τα **ΒΙΝΤΕΟ**, δεξιά για τις **ΦΩΤΟΓΡΑΦΙΕΣ**.
+  Αν αφήσεις κενό το δεξί πεδίο, το κείμενο των βίντεο εμφανίζεται **και στις φωτογραφίες**.
+- **Έντονα** γράμματα με `**κείμενο**`. Αυτόματο word-wrap και λευκό πλαίσιο πίσω από το κείμενο, στο κάτω μέρος.
+- Πλήρης υποστήριξη **Ctrl+C / Ctrl+V / Ctrl+X / Ctrl+Z** και κουμπιά γρήγορης επικόλλησης από το πρόχειρο.
+- Υποστηρίζει ελληνικούς χαρακτήρες και πολλές γραμμές.
+
+### Κάδρο & εμφάνιση
+- **5 αναλύσεις**: `1080x1080`, `1920x1080`, `1080x1920` (9:16 Portrait), `1080x1350` (4:5 Portrait), `720x1280` (9:16 HD).
+- **Background Mode**:
+  - **White / Black** — μονόχρωμο φόντο γύρω από την εικόνα.
+  - **Blur** — θολό, γεμάτο κάδρο αντίγραφο της εικόνας ως φόντο.
+  - **Fit and Move** — η εικόνα κάνει fit στον χώρο πάνω από το κείμενο, μετά γίνεται zoom και **αργό pan**
+    (αριστερά↔δεξιά για οριζόντιες φωτογραφίες, πάνω↔κάτω για κάθετες, με τυχαία κατεύθυνση κάθε φορά).
+    Το zoom προσαρμόζεται στο ύψος του κειμένου (να μην κρύβεται η εικόνα) και η ταχύτητα του pan ταιριάζει
+    με τη διάρκεια του slide. Το «Enable Cropping» απενεργοποιείται αυτόματα σε αυτή τη λειτουργία.
+- **Enable Cropping (Fill Frame)** — γεμίζει όλο το κάδρο κόβοντας τις άκρες, χωρίς μπάρες.
+- **Auto position photos / videos (Text below)** — η εικόνα/βίντεο τοποθετείται πάνω από το κείμενο.
+
+### Slides & εφέ μετάβασης
+- **Slide Duration**: 1–30 δευτ. ανά slide.
+- **Transitions**: None, Fade, Fade to Black, Fade to White, Wipe Left / Right / Up / Down, Smooth Left / Right —
+  με διάρκεια **0.2–2.0 δευτ.**, ή **Random** με επιλογή ποια εφέ θα συμπεριλαμβάνονται.
+
+### Μουσική
+- Τραγούδια σε **`.mp4`** (με audio track) από τον φάκελο μουσικής (`music/` ή όποιον ορίσεις).
+- **Auto tracking**: το ίδιο τραγούδι δεν ξαναχρησιμοποιείται μέχρι να παίξουν όλα (μετά ο κύκλος ξεκινά από την αρχή).
+- Το app διαλέγει αυτόματα αρκετά τραγούδια ώστε να καλύπτεται όλη η διάρκεια του βίντεο.
+- **Volume: −60 έως +20 dB** (αρνητικές τιμές = πιο σιγανή μουσική).
+- Κουμπιά **Refresh Music List** (βρίσκει νέα τραγούδια) και **Reset Used Music**.
+- Ο ήχος των βίντεο αφαιρείται πάντα — στο τελικό βίντεο ακούγεται μόνο η μουσική.
+
+### Watermark / Logo
+- Ενεργοποίηση σε όλα τα βίντεο, επιλογή εικόνας (PNG/JPG), θέση (Bottom/Top × Left/Right, Center),
+  μέγεθος **5–50%** του πλάτους, διαφάνεια **10–100%**.
+- **Override ανά project** από το κουμπί `Logo`.
+
+### Preview
+- **Δύο previews** (ΦΩΤΟΓΡΑΦΙΑ | ΒΙΝΤΕΟ) που δείχνουν το **πρώτο καρέ όπως θα βγει στο export**, σε **πλήρη ανάλυση**
+  και με το σωστό κείμενο για κάθε τύπο.
+- Το μέγεθος του preview ακολουθεί την **ανάλυση** που έχεις επιλέξει.
+- **Κλικ πάνω σε ένα preview** → μεγέθυνση σε **πραγματικό μέγεθος** (για να ελέγξεις ακριβώς το κείμενο).
+- Σωστός προσανατολισμός και για **βίντεο από κινητό** (portrait βίντεο που είναι αποθηκευμένα με rotation metadata).
+
+### Export
+- Δίνεις **όνομα project** + **output folder** και πατάς `GENERATE VIDEO`.
+- Δημιουργεί `<output folder>/<όνομα>.mp4` (H.264 / AAC, 30 fps): ενώνει τα clips με τα εφέ, εφαρμόζει watermark και μουσική.
+- Progress bar και μήνυμα ολοκλήρωσης. Αν λείπει μουσική, το βίντεο βγαίνει χωρίς ήχο με σχετική ειδοποίηση.
+- **Debug log**: κάθε export γράφει το `temp/export_log.txt` (ανά media: OK/MISSING + διάρκεια, merge, επιλογή μουσικής, τυχόν σφάλμα με traceback).
+
+### Projects
+- **File > New Project / Save Project / Load Project** (JSON στον φάκελο `projects/`).
+- Στο Load Project: **αναζήτηση** και δεξί κλικ για **Load / Duplicate / Rename / Delete**.
+
+---
+
+## Απαιτήσεις
+
+| | |
+|---|---|
+| Λειτουργικό | Windows |
+| Python | 3.9+ (με tkinter, έρχεται μαζί με τον Python) |
+| FFmpeg | **Απαραίτητο** — τα `ffmpeg` και `ffprobe` πρέπει να είναι διαθέσιμα στο PATH |
+| Python packages | δες το `requirements.txt` |
+
+`requirements.txt`:
+```
+moviepy==1.0.3
+pillow>=10.0.0
+numpy>=1.24.0
+tkinterdnd2>=0.3.0
+windnd>=1.0.2
+```
 
 ## Εγκατάσταση
 
-1. Python 3.8+
-
-2. Εγκατάσταση dependencies:
-```bash
-pip install -r requirements.txt
-```
+1. Εγκατέστησε Python 3.9+.
+2. Εγκατέστησε τις βιβλιοθήκες:
+   ```bash
+   pip install -r requirements.txt
+   ```
+3. Βεβαιώσου ότι το FFmpeg είναι στο PATH (έλεγχος: `ffmpeg -version`).
 
 ## Εκτέλεση
 
 ```bash
-python slideshow_app_beta.py
+python "slideshow_app v3.py"
 ```
 
 ## Χρήση
 
-1. **Προσθήκη Media:**
-   - Κλικ στα κουμπιά "+ Video" και "+ Image"
-   - Drag & Drop αρχεία απευθείας στη βιβλιοθήκη (αν είναι εγκατεστημένο tkinterdnd2)
-   - Δεξί κλικ σε κάθε media για Delete, Move, Change Position
+1. **Media** — πρόσθεσε φωτογραφίες/βίντεο (κουμπιά ή drag & drop) και βάλε τα στη σειρά που θέλεις.
+2. **Κείμενο** — `Text Input`: γράψε το κείμενο για τα βίντεο (αριστερά) και, αν θέλεις ξεχωριστό, για τις φωτογραφίες (δεξιά).
+3. **Ρυθμίσεις** — `Settings > Video / Audio & Music / Text / Watermark`: ανάλυση, background mode, διάρκεια, εφέ, μουσική, logo.
+4. **Preview** — `Generate Preview Frame` για να δεις το πρώτο καρέ φωτογραφίας και βίντεο (κλικ για μεγέθυνση).
+5. **Export** — όνομα project, output folder, `GENERATE VIDEO`.
 
-2. **Κείμενο:**
-   - Κλικ "Text Input" για να ανοίξει το παράθυρο κειμένου
-   - Χρησιμοποίησε `**κείμενο**` για bold
-   - Υποστηρίζει Ελληνικούς χαρακτήρες και πολλές γραμμές
+## Ρυθμίσεις
 
-3. **Ρυθμίσεις:**
-   - **Settings > Audio & Music Settings:** Volume (dB), mute video audio, music folder, crossfade, trim silence
-   - **Settings > Video Settings:** Ανάλυση (1080x1080 ή 1920x1080), background mode, cropping, slide duration, auto position
-   - **Settings > Text Settings:** Font size, font family
-
-4. **Preview:**
-   - Κλικ "Generate Preview Frame" για να δεις την πρώτη εικόνα/frame με κείμενο
-
-5. **Export:**
-   - Διάλεξε output folder, δώσε όνομα project
-   - Κλικ "GENERATE VIDEO"
-
-## Features
-
-✅ Media library με thumbnail/icon view και list view
-✅ Drag & Drop media files
-✅ Reorder media με δεξί κλικ (Move Up/Down, Change Position, Delete)
-✅ Ξεχωριστό παράθυρο text input (με clipboard paste)
-✅ Αυτόματο tracking μουσικής (δεν επαναλαμβάνει τραγούδια)
-✅ Configurable music folder
-✅ Crossfade μεταξύ τραγουδιών
-✅ Auto trim silence
-✅ Fit χωρίς cropping με επιλογές background (λευκό, μαύρο, blurred)
-✅ Enable Cropping (Fill Frame)
-✅ Auto position photos/videos (κείμενο κάτω, εικόνα πάνω)
-✅ Slide duration ρυθμιζόμενο ανά project
-✅ Preview frame γρήγορα
-✅ Save/Load projects
-✅ Volume control (dB)
-✅ Markdown bold support (**text**)
-✅ Mute original video audio
-
-## Μουσική
-
-- Τοποθέτησε αρχεία `.mp4` (με audio) στον φάκελο `music/` (ή επίλεξε άλλο φάκελο στα Audio Settings)
-- **Settings > Audio & Music Settings > Refresh Music List** για νέα τραγούδια
-- **Reset Used Music** για να ξεκινήσεις από την αρχή
-
-## Διαχείριση Projects
-
-- **File > New Project** – Νέο κενό project
-- **File > Save Project** – Αποθήκευση στον φάκελο `projects/`
-- **File > Load Project** – Φόρτωση αποθηκευμένου project
+| Μενού | Τι ρυθμίζεις |
+|---|---|
+| **Video Settings** | Ανάλυση, Background Mode, Enable Cropping, Auto position, Slide Duration, Transitions (+ Random) |
+| **Audio & Music Settings** | Ένταση μουσικής (dB), φάκελος μουσικής, Refresh / Reset Music List |
+| **Text Settings** | Μέγεθος γραμματοσειράς (10–150) |
+| **Watermark / Logo Settings** | Ενεργοποίηση, εικόνα, θέση, μέγεθος, διαφάνεια (για όλα τα βίντεο) |
 
 ## Υποστηριζόμενες μορφές
 
-| Τύπος  | Μορφές                              |
-|--------|-------------------------------------|
-| Video  | .mp4, .avi, .mov, .mkv              |
-| Image  | .jpg, .jpeg, .png, .bmp             |
-| Music  | .mp4 (audio track)                  |
+| Τύπος | Μορφές |
+|---|---|
+| Video | `.mp4`, `.avi`, `.mov`, `.mkv` |
+| Image | `.jpg`, `.jpeg`, `.png`, `.bmp` |
+| Music | `.mp4` (με audio track) |
 
-## Troubleshooting
-
-**Το βίντεο στο export εμφανίζεται μαύρο**
-→ Βεβαιώσου ότι χρησιμοποιείς την τελευταία έκδοση (bug διορθώθηκε)
-
-**Drag & drop δεν λειτουργεί**
-→ `pip install tkinterdnd2`
-
-**Το κείμενο δεν γίνεται bold**
-→ Χρησιμοποίησε `**κείμενο**` χωρίς κενά μεταξύ `**` και κειμένου
-
-**Η μουσική δεν ακούγεται**
-→ Έλεγξε ότι τα `.mp4` στο music folder έχουν audio track
-
-**Το export παγώνει**
-→ Περίμενε — μεγάλα projects παίρνουν χρόνο. Δες την progress bar.
-
-## Τεχνικές πληροφορίες
-
-- Γλώσσα: Python 3.8+
-- GUI: Tkinter
-- Video Processing: FFmpeg (subprocess) + MoviePy
-- Image Processing: Pillow (PIL)
-- Codec: H.264 (libx264) / AAC
+> Οι εικόνες με διαφάνεια (PNG/RGBA), grayscale ή palette υποστηρίζονται κανονικά.
 
 ## Δομή φακέλων
 
 ```
-slideshow-video-genarator/
-├── slideshow_app_beta.py   # Κύρια εφαρμογή (v2 Beta)
-├── slideshow_app.py        # Πρώτη έκδοση (v1)
+φάκελος εφαρμογής/
+├── slideshow_app v3.py     # Η εφαρμογή
 ├── requirements.txt
-├── settings.json
-├── music_tracker.json
-├── music/                  # Μουσική (.mp4 files)
+├── README.md
+├── settings.json           # Οι ρυθμίσεις (δημιουργείται αυτόματα)
+├── music_tracker.json      # Ποια τραγούδια έχουν χρησιμοποιηθεί
+├── music/                  # Τραγούδια (.mp4)
 ├── projects/               # Αποθηκευμένα projects (.json)
-└── temp/                   # Προσωρινά αρχεία (auto-created)
+└── temp/                   # Προσωρινά αρχεία + export_log.txt (δημιουργούνται αυτόματα)
 ```
 
-## Versions
+## Σημαντικό
 
-**v2 Beta (Current)**
-- Media library με thumbnail/icon view
-- Drag & drop + reorder media
-- Ξεχωριστό text input window
-- Configurable music folder
-- Crossfade & trim silence
-- Auto position για photos και videos
-- Ρυθμιζόμενο slide duration
-- Διόρθωση: video clips εμφανίζονται σωστά στο export
+- Οι **ρυθμίσεις αποθηκεύονται στον φάκελο όπου βρίσκεται το `slideshow_app v3.py`** (`settings.json`).
+  Αν έχεις δύο αντίγραφα της εφαρμογής σε διαφορετικούς φακέλους, **δεν μοιράζονται ρυθμίσεις** —
+  κάθε φάκελος έχει τις δικές του (volume, ανάλυση, φάκελο μουσικής κ.λπ.).
+- Ο χρόνος του export εξαρτάται από το μήκος των βίντεο, τον αριθμό των slides και τα εφέ.
+  Αν κάτι πάει στραβά, κοίτα πρώτα το `temp/export_log.txt`.
 
-**v1**
-- Βασική δημιουργία slideshow
-- Music tracking
-- Project management
-- Multiple video settings
+## Troubleshooting
+
+| Πρόβλημα | Λύση |
+|---|---|
+| Δεν ξεκινά / «Missing dependencies» | `pip install -r requirements.txt` |
+| Σφάλμα στο export για ffmpeg/ffprobe | Βεβαιώσου ότι το FFmpeg είναι εγκατεστημένο και στο PATH |
+| Το drag & drop δεν δουλεύει | `pip install tkinterdnd2` |
+| Δεν αλλάζει η ένταση της μουσικής | Έλεγξε ότι τρέχεις από τον φάκελο με το σωστό `settings.json` (βλ. «Σημαντικό») |
+| Δεν βγαίνουν όλα τα slides | Άνοιξε το `temp/export_log.txt` — δείχνει ποιο media απέτυχε |
+| Δεν ακούγεται μουσική | Τα αρχεία στο music folder πρέπει να είναι `.mp4` **με audio track** — πάτα `Refresh Music List` |
+
+## Τεχνικές πληροφορίες
+
+- Γλώσσα: **Python 3.9+**
+- GUI: **Tkinter**
+- Επεξεργασία βίντεο: **FFmpeg** (subprocess) + **MoviePy**
+- Επεξεργασία εικόνας: **Pillow (PIL)**
+- Κωδικοποίηση εξόδου: **H.264 (libx264)** / **AAC**, 30 fps
+- Εξωτερική εξάρτηση συστήματος: **FFmpeg**
+
+## Τι είναι καινούριο στη v3
+
+- **Fit and Move**: zoom & pan με αυτόματο προσανατολισμό, ένταση pan ανάλογη της διάρκειας του slide.
+- **3 νέες αναλύσεις**: 1080x1920, 1080x1350, 720x1280.
+- **Ξεχωριστό κείμενο για βίντεο και φωτογραφίες** (με fallback στις φωτογραφίες).
+- **Ctrl+C / Ctrl+V / Ctrl+X / Ctrl+Z** στο παράθυρο κειμένου.
+- **Ακριβές preview** σε πλήρη ανάλυση για φωτογραφία και βίντεο, με μεγέθυνση σε πραγματικό μέγεθος
+  και σωστό προσανατολισμό για portrait βίντεο κινητού.
+- **Πολύ ταχύτερο render** του Fit and Move.
+- **Αξιόπιστη μουσική**: σωστή επιλογή/χρήση τραγουδιών, έλεγχοι διάρκειας, ένταση έως **−60 dB**,
+  και καθαρό σφάλμα αντί για σιωπηλά κομμένο βίντεο.
+- **Debug log** ανά export (`temp/export_log.txt`).
+- Διορθώσεις: το *Rename Project* δεν διαγράφει πια το project, υποστήριξη εικόνων PNG/RGBA/palette,
+  σωστός προσανατολισμός rotated βίντεο στο preview και στο thumbnail.
