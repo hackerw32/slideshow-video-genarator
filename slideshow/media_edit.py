@@ -91,22 +91,27 @@ class MediaEditMixin:
         """One EraseEngine per app; the LaMa model loads lazily on first use."""
         engine = getattr(self, "_erase_engine_obj", None)
         if engine is None:
-            from .erase import EraseEngine, MODEL_DIR_NAME
-            engine = EraseEngine(self.app_dir / MODEL_DIR_NAME)
+            from .erase import EraseEngine, MODEL_DIR_NAME, DEFAULT_MODEL
+            engine = EraseEngine(
+                self.app_dir / MODEL_DIR_NAME,
+                get_model=lambda: self.settings.get("erase_model", DEFAULT_MODEL))
             self._erase_engine_obj = engine
         return engine
 
     def _apply_erase(self, img, strokes, path=None):
-        """Run the stored strokes through the eraser, with a small cache.
+        """Run the stored strokes through the eraser, with a 2-level cache.
 
         Inpainting costs a couple of seconds per photo, so the result is cached
-        per (path, source size, strokes, engine). The strokes are the only
-        input that ever changes, so the key is exact whenever the path is
-        known; without a path we simply do not cache.
+        in memory (last few photos) and on disk (content-addressed PNG under
+        ``erase_cache/``), so an export never re-runs the model for a photo that
+        was already erased in the editor. The cache key covers the source path,
+        its mtime and size, the strokes and the model, so a changed source,
+        different strokes or a different model produce a new entry.
         """
         if not strokes:
             return img
         key = None
+        disk = None
         if path is not None:
             from .erase import strokes_key
             key = (str(path), img.size, strokes_key(strokes), self._erase_engine().engine_name)
@@ -115,13 +120,63 @@ class MediaEditMixin:
                 cached = self._erase_cache = {}
             if key in cached:
                 return cached[key].copy()
+            disk = self._erase_cache_path(path, img, strokes)
+            if disk.exists():
+                try:
+                    hit = Image.open(disk)
+                    hit.load()
+                    hit = hit.convert("RGB")
+                    cached[key] = hit.copy()
+                    self._log_export(f"erase: disk cache hit {disk.name}")
+                    return hit
+                except Exception:
+                    pass
         out = self._erase_engine().erase(img, strokes)
         if key is not None:
             cache = self._erase_cache
             cache[key] = out.copy()
             while len(cache) > 12:                  # keep the last few photos
                 cache.pop(next(iter(cache)))
+            try:
+                disk.parent.mkdir(parents=True, exist_ok=True)
+                tmp = disk.with_suffix(".tmp")
+                out.convert("RGB").save(tmp, "PNG")
+                os.replace(tmp, disk)
+            except Exception:
+                pass
         return out
+
+
+    def _erase_cache_path(self, path, img, strokes):
+        import hashlib
+        from .erase import strokes_key
+        try:
+            mtime = int(os.path.getmtime(path))
+        except OSError:
+            mtime = 0
+        raw = (f"{path}|{img.size[0]}x{img.size[1]}|{mtime}|"
+               f"{self._erase_engine().engine_name}|{strokes_key(strokes)}")
+        return self.app_dir / "erase_cache" / (hashlib.md5(raw.encode("utf-8")).hexdigest() + ".png")
+
+
+    def erase_cache_info(self):
+        """(number of files, total bytes) of the on-disk erase cache."""
+        d = self.app_dir / "erase_cache"
+        if not d.is_dir():
+            return (0, 0)
+        files = list(d.glob("*.png"))
+        return (len(files), sum(f.stat().st_size for f in files))
+
+
+    def clear_erase_cache(self):
+        d = self.app_dir / "erase_cache"
+        if not d.is_dir():
+            return
+        for f in d.glob("*.png"):
+            try:
+                f.unlink()
+            except OSError:
+                pass
 
 
     def _global_color(self, m_type):

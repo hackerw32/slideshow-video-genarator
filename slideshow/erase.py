@@ -29,10 +29,7 @@ import numpy as np
 from PIL import Image, ImageFilter
 
 MODEL_DIR_NAME = "models"
-MODEL_FILENAME = "lama_fp32.onnx"
-MODEL_URL = "https://huggingface.co/Carve/LaMa-ONNX/resolve/main/lama_fp32.onnx"
-MODEL_MIN_BYTES = 50 * 1024 * 1024   # smaller than this means a broken download
-LAMA_INPUT = 512                     # the ONNX graph is fixed at 512x512
+LAMA_INPUT = 512                     # the LaMa ONNX graph is fixed at 512x512
 MASK_GROW = 9                        # dilate the mask so the model has context
 FEATHER = 11                         # blur radius of the blend, in pixels
 # The crop handed to the fixed 512x512 model is this much bigger than the
@@ -41,6 +38,26 @@ FEATHER = 11                         # blur radius of the blend, in pixels
 # generous context around the hole. Note this cannot rescue a mask that fills
 # most of the frame: the model has no context left to copy from.
 CROP_MARGIN = 2.5
+
+# Inpainting models the user can pick from (downloaded on demand into models/).
+# `kind` selects the preprocessing, since each export has its own input format.
+MODELS = {
+    "lama": {
+        "label": "LaMa — ισορροπημένο (καλύτερο σε μεγάλα/δύσκολα κενά)",
+        "filename": "lama_fp32.onnx",
+        "url": "https://huggingface.co/Carve/LaMa-ONNX/resolve/main/lama_fp32.onnx",
+        "min_bytes": 50 * 1024 * 1024,
+        "mb": 198,
+    },
+    "migan": {
+        "label": "MI-GAN — γρήγορο (εξαιρετικό για αντικείμενα/πρόσωπα)",
+        "filename": "migan_pipeline_v2.onnx",
+        "url": "https://huggingface.co/andraniksargsyan/migan/resolve/main/migan_pipeline_v2.onnx",
+        "min_bytes": 20 * 1024 * 1024,
+        "mb": 27,
+    },
+}
+DEFAULT_MODEL = "lama"
 
 
 def cv2_module():
@@ -129,20 +146,21 @@ def _feather(mask, radius):
     return np.asarray(Image.fromarray(mask).filter(ImageFilter.GaussianBlur(radius)))
 
 
-def download_model(dest_dir, progress=None, cancelled=None):
-    """Fetch the LaMa model once into ``dest_dir``.
+def download_model(dest_dir, model=DEFAULT_MODEL, progress=None, cancelled=None):
+    """Fetch one model once into ``dest_dir``.
 
     Downloads to a ``.part`` file and only then renames it, so an interrupted
     download can never be mistaken for a working model. ``progress(done, total)``
     is called as chunks arrive and ``cancelled()`` is polled so the UI can stop
     it. Raises RuntimeError with a Greek message on failure.
     """
+    info = MODELS.get(model, MODELS[DEFAULT_MODEL])
     dest_dir = Path(dest_dir)
     dest_dir.mkdir(parents=True, exist_ok=True)
-    final = dest_dir / MODEL_FILENAME
-    tmp = dest_dir / (MODEL_FILENAME + ".part")
+    final = dest_dir / info["filename"]
+    tmp = dest_dir / (info["filename"] + ".part")
     try:
-        req = urllib.request.Request(MODEL_URL, headers={"User-Agent": "slideshow-creator"})
+        req = urllib.request.Request(info["url"], headers={"User-Agent": "slideshow-creator"})
         with urllib.request.urlopen(req, timeout=60) as r, open(tmp, "wb") as f:
             total = int(r.headers.get("Content-Length") or 0)
             done = 0
@@ -168,7 +186,7 @@ def download_model(dest_dir, progress=None, cancelled=None):
         except OSError:
             pass
         raise RuntimeError(f"Η λήψη του μοντέλου απέτυχε ({e}). Έλεγξε τη σύνδεση στο internet.")
-    if tmp.stat().st_size < MODEL_MIN_BYTES:
+    if tmp.stat().st_size < info["min_bytes"]:
         try:
             tmp.unlink()
         except OSError:
@@ -179,56 +197,65 @@ def download_model(dest_dir, progress=None, cancelled=None):
 
 
 class EraseEngine:
-    """Runs the inpainting for one app instance (the model loads lazily)."""
+    """Runs the inpainting for one app instance (models load lazily).
 
-    def __init__(self, model_dir):
+    The active model comes from ``get_model()`` (a Settings value), so the user
+    can switch between models without restarting the app. Each model keeps its
+    own cached ONNX session.
+    """
+
+    def __init__(self, model_dir, get_model=None):
         self.model_dir = Path(model_dir)
-        self._session = None
+        self._get_model = get_model or (lambda: DEFAULT_MODEL)
+        self._sessions = {}
         self._lock = threading.Lock()          # one inference at a time
         self._load_lock = threading.Lock()     # one load at a time
 
-    def prewarm(self):
-        """Load the model in the background so the first erase is not a 20s wait.
+    def active_model(self):
+        key = self._get_model()
+        return key if key in MODELS else DEFAULT_MODEL
 
-        Creating the ONNX session costs ~20s for this 198 MB graph (measured;
-        the inference itself is only ~2s, and dropping the optimization level
-        to ORT_DISABLE_ALL barely moved the load, so the cost is inherent).
-        It happens once per app run, off the Tk main thread, and is silently
-        ignored when the model or onnxruntime is missing.
+    def prewarm(self):
+        """Load the active model in the background so the first erase is quick.
+
+        Creating an ONNX session costs ~20s for LaMa (measured; the inference
+        itself is only ~2s). It happens once per app run, off the Tk main
+        thread, and is silently ignored when the model or onnxruntime is missing.
         """
-        if self._session is not None or not self.model_ready():
+        if self.is_loaded() or not self.model_ready():
             return
         threading.Thread(target=self._load_quietly, daemon=True).start()
 
     def _load_quietly(self):
         try:
-            self._session_for_model()
+            self._session_for_model(self.active_model())
         except Exception:
             pass
 
     # ------------------------------------------------------------- model
-    @property
-    def model_path(self):
-        return self.model_dir / MODEL_FILENAME
+    def model_path(self, model=None):
+        return self.model_dir / MODELS[model or self.active_model()]["filename"]
 
-    def model_ready(self):
+    def model_ready(self, model=None):
+        key = model or self.active_model()
         try:
-            return self.model_path.stat().st_size >= MODEL_MIN_BYTES
+            return self.model_path(key).stat().st_size >= MODELS[key]["min_bytes"]
         except OSError:
             return False
 
     @property
     def engine_name(self):
         """Which engine will be used - part of the erase cache key."""
-        return "lama" if self.model_ready() else "opencv"
+        key = self.active_model()
+        return key if self.model_ready(key) else "opencv"
 
     def is_loaded(self):
-        """True once the ONNX session is in memory (a ~20s one-off cost)."""
-        return self._session is not None
+        """True once the active model's session is in memory (a one-off cost)."""
+        return self._sessions.get(self.active_model()) is not None
 
-    def _session_for_model(self):
+    def _session_for_model(self, key):
         with self._load_lock:          # two threads must not load it at once
-            if self._session is None:
+            if key not in self._sessions:
                 try:
                     import onnxruntime as ort
                 except Exception as e:
@@ -238,9 +265,9 @@ class EraseEngine:
                 # identical to DISABLE_ALL in a measured comparison, so the
                 # slower ORT_ENABLE_ALL buys nothing here.
                 opts.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_EXTENDED
-                self._session = ort.InferenceSession(
-                    str(self.model_path), opts, providers=["CPUExecutionProvider"])
-        return self._session
+                self._sessions[key] = ort.InferenceSession(
+                    str(self.model_path(key)), opts, providers=["CPUExecutionProvider"])
+        return self._sessions[key]
 
     # ------------------------------------------------------------- erasing
     def erase(self, img, strokes):
@@ -249,15 +276,17 @@ class EraseEngine:
         mask = strokes_to_mask(strokes, img.width, img.height)
         if not mask.any():
             return img
-        if self.model_ready():
+        key = self.active_model()
+        if self.model_ready(key):
             try:
-                return self._erase_lama(img, mask)
+                return self._erase_model(img, mask, key)
             except Exception:
                 # Never leave the user with nothing: fall back to OpenCV.
                 pass
         return self._erase_cv2(img, mask)
 
-    def _erase_lama(self, img, mask):
+    def _erase_model(self, img, mask, kind):
+        """Crop around the mask, run the model, blend the patch back softly."""
         W, H = img.size
         ys, xs = np.where(mask > 0)
         x0, x1 = int(xs.min()), int(xs.max()) + 1
@@ -272,7 +301,7 @@ class EraseEngine:
         crop = np.asarray(img.crop((bx0, by0, bx1, by1)))
         cmask = mask[by0:by1, bx0:bx1]
         grown = _dilate(cmask, MASK_GROW)
-        patch = self._run_lama(crop, grown)
+        patch = self._run_model(kind, crop, grown)
         patch = np.asarray(Image.fromarray(patch).resize(
             (bx1 - bx0, by1 - by0), Image.Resampling.LANCZOS))
 
@@ -283,8 +312,13 @@ class EraseEngine:
         out[by0:by1, bx0:bx1] = np.clip(blended, 0, 255).astype(np.uint8)
         return Image.fromarray(out)
 
+    def _run_model(self, kind, crop_rgb, mask_u8):
+        if kind == "migan":
+            return self._run_migan(crop_rgb, mask_u8)
+        return self._run_lama(crop_rgb, mask_u8)
+
     def _run_lama(self, crop_rgb, mask_u8):
-        sess = self._session_for_model()
+        sess = self._session_for_model("lama")
         im = np.asarray(Image.fromarray(crop_rgb).resize(
             (LAMA_INPUT, LAMA_INPUT), Image.Resampling.LANCZOS), np.float32) / 255.0
         mk = np.asarray(Image.fromarray(mask_u8).resize(
@@ -298,11 +332,22 @@ class EraseEngine:
             out = out * 255.0
         return np.clip(out, 0, 255).astype(np.uint8)
 
+    def _run_migan(self, crop_rgb, mask_u8):
+        """MI-GAN pipeline: uint8 RGB image + uint8 mask (0 = fill, 255 = keep)."""
+        sess = self._session_for_model("migan")
+        img = np.ascontiguousarray(crop_rgb, dtype=np.uint8)
+        mk = np.where(mask_u8 > 127, 0, 255).astype(np.uint8)
+        with self._lock:
+            out = sess.run(None, {"image": img.transpose(2, 0, 1)[None],
+                                  "mask": mk[None, None]})[0][0]
+        out = out.transpose(1, 2, 0)
+        return np.clip(out, 0, 255).astype(np.uint8)
+
     def _erase_cv2(self, img, mask):
         cv2 = cv2_module()
         if cv2 is None:
-            raise RuntimeError("Δεν υπάρχει ούτε το μοντέλο LaMa ούτε το OpenCV. "
-                               "Κατέβασε το μοντέλο από Settings → Σβήσιμο αντικειμένων.")
+            raise RuntimeError("Δεν υπάρχει κανένα μοντέλο ούτε το OpenCV. "
+                               "Κατέβασε ένα μοντέλο από Settings → Σβήσιμο αντικειμένων.")
         arr = np.asarray(img.convert("RGB"))
         grown = _dilate(mask, 3)
         fixed = cv2.inpaint(cv2.cvtColor(arr, cv2.COLOR_RGB2BGR), grown, 3,

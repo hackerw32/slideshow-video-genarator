@@ -17,7 +17,7 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 
 from .deps import Image, ImageTk
-from .erase import MODEL_DIR_NAME, download_model
+from .erase import MODEL_DIR_NAME, MODELS, DEFAULT_MODEL, download_model
 
 CW, CH = 640, 420          # the erase canvas is a fixed size; the view zooms
 MIN_SCALE, MAX_SCALE = 0.05, 8.0
@@ -88,6 +88,7 @@ class ErasePanel:
 
         self.status = ttk.Label(self.parent, text="", foreground="#333")
         self.status.pack(fill='x', padx=8, pady=(2, 4))
+        self.bar = ttk.Progressbar(self.parent, mode='indeterminate', length=CW)
 
         ttk.Label(self.parent,
                   text="Ζωγράφισε πάνω σε ό,τι θέλεις να εξαφανιστεί (πινακίδα, σκουπίδια, "
@@ -249,6 +250,8 @@ class ErasePanel:
         cold = engine.model_ready() and not engine.is_loaded()
         self.set_status("Φόρτωση μοντέλου AI και σβήσιμο... (την πρώτη φορά θέλει ~20s)"
                         if cold else "Σβήσιμο...")
+        self.bar.pack(fill='x', padx=8, pady=(0, 4))
+        self.bar.start(12)
         self._set_buttons(False)
         threading.Thread(target=self._worker, args=(snapshot, token), daemon=True).start()
 
@@ -262,6 +265,8 @@ class ErasePanel:
 
     def _done(self, out, err, token):
         self.busy = False
+        self.bar.stop()
+        self.bar.pack_forget()
         self._set_buttons(True)
         if token != self.token:
             return                       # a newer stroke already superseded this
@@ -367,10 +372,23 @@ class EraseSettingsMixin:
         ttk.Label(body, text="Τοπικό σβήσιμο αντικειμένων", font=("Calibri", 11, "bold")).pack(
             padx=18, pady=(14, 2), anchor='w')
         ttk.Label(body, foreground="#555", wraplength=570, justify='left',
-                  text="Χρησιμοποιεί το μοντέλο LaMa, που τρέχει τοπικά στον υπολογιστή σου "
-                       "μέσω onnxruntime. Χωρίς σύνδεση στο internet, χωρίς αποστολή της "
-                       "φωτογραφίας πουθενά — μόνο η λήψη του μοντέλου χρειάζεται internet, "
-                       "μία φορά.").pack(padx=18, anchor='w', pady=(0, 8))
+                  text="Τα μοντέλα τρέχουν τοπικά στον υπολογιστή σου μέσω onnxruntime. Χωρίς "
+                       "σύνδεση στο internet, χωρίς αποστολή της φωτογραφίας πουθενά — μόνο η "
+                       "λήψη του μοντέλου χρειάζεται internet, μία φορά.").pack(
+            padx=18, anchor='w', pady=(0, 8))
+
+        model_var = tk.StringVar(value=self.settings.get("erase_model", DEFAULT_MODEL))
+
+        def on_select():
+            self.settings["erase_model"] = model_var.get()
+            self.save_settings()
+            refresh()
+        ttk.Label(body, text="Μοντέλο:", font=("Calibri", 10, "bold")).pack(
+            padx=18, anchor='w')
+        for key, cfg in MODELS.items():
+            ttk.Radiobutton(body, text=f"{cfg['label']}  ({cfg['mb']} MB)",
+                            variable=model_var, value=key, command=on_select).pack(
+                padx=30, anchor='w')
 
         info = ttk.Label(body, text="", justify='left', wraplength=570)
         info.pack(padx=18, anchor='w')
@@ -381,21 +399,32 @@ class EraseSettingsMixin:
         note = ttk.Label(body, text="", foreground="#333", justify='left', wraplength=570)
         note.pack(padx=18, anchor='w')
 
+        cache_lbl = ttk.Label(body, text="", foreground="#333")
+        cache_lbl.pack(padx=18, pady=(8, 0), anchor='w')
+
+        def refresh_cache():
+            n, total = self.erase_cache_info()
+            cache_lbl.config(text=f"Cache σβησμάτων (δεν ξανατρέχει το μοντέλο στο export): "
+                                  f"{n} αρχεία, {total / 1048576:.1f} MB")
+        refresh_cache()
+
         btns = ttk.Frame(bottom)
         btns.pack(fill='x', padx=18)
         cancel = {"v": False}
         state = {"busy": False}
 
         def refresh():
-            if engine.model_ready():
-                mb = engine.model_path.stat().st_size / 1048576
-                info.config(text=f"Κατάσταση: έτοιμο — {mb:.0f} MB στο models/", foreground="#1e7a34")
+            key = model_var.get()
+            if engine.model_ready(key):
+                mb = engine.model_path(key).stat().st_size / 1048576
+                info.config(text=f"Κατάσταση ({key}): έτοιμο — {mb:.0f} MB στο models/",
+                            foreground="#1e7a34")
                 dl_btn.config(text="Ξανά κατέβασμα", state='normal')
             else:
-                info.config(text="Κατάσταση: το μοντέλο δεν έχει κατέβει. Το σβήσιμο θα γίνει "
-                                 "προσωρινά με OpenCV (ακαριαίο αλλά πολύ κατώτερο σε "
-                                 "πολύπλοκες εικόνες).", foreground="#c0392b")
-                dl_btn.config(text="Κατέβασμα μοντέλου (198 MB)", state='normal')
+                info.config(text=f"Κατάσταση ({key}): το μοντέλο δεν έχει κατέβει. Χωρίς αυτό "
+                                 "το σβήσιμο γίνεται προσωρινά με OpenCV (ακαριαίο αλλά "
+                                 "κατώτερο σε δύσκολες εικόνες).", foreground="#c0392b")
+                dl_btn.config(text=f"Κατέβασμα μοντέλου ({MODELS[key]['mb']} MB)", state='normal')
 
         def set_busy(b):
             state["busy"] = b
@@ -411,7 +440,8 @@ class EraseSettingsMixin:
                 self.root.after(0, lambda: (bar.config(value=pct),
                                             note.config(text=txt)))
             try:
-                download_model(self.app_dir / MODEL_DIR_NAME, prog, lambda: cancel["v"])
+                download_model(self.app_dir / MODEL_DIR_NAME, model_var.get(), prog,
+                               lambda: cancel["v"])
                 self.root.after(0, lambda: finished(None))
             except Exception as e:
                 self.root.after(0, lambda: finished(str(e)))
@@ -431,7 +461,8 @@ class EraseSettingsMixin:
         def start():
             if state["busy"]:
                 return
-            if engine.model_ready() and not messagebox.askyesno(
+            key = model_var.get()
+            if engine.model_ready(key) and not messagebox.askyesno(
                     "Σβήσιμο", "Το μοντέλο υπάρχει ήδη. Να το ξανακατεβάσω;"):
                 return
             cancel["v"] = False
@@ -443,8 +474,16 @@ class EraseSettingsMixin:
             cancel["v"] = True
             note.config(text="Ακύρωση...", foreground="#333")
 
-        dl_btn = ttk.Button(btns, text="Κατέβασμα μοντέλου (198 MB)", command=start)
+        dl_btn = ttk.Button(btns, text="Κατέβασμα μοντέλου", command=start)
         dl_btn.pack(side='left')
+
+        def do_clear_cache():
+            self.clear_erase_cache()
+            self._erase_cache = {}
+            refresh_cache()
+            note.config(text="Ο cache σβησμάτων καθαρίστηκε.", foreground="#1e7a34")
+        ttk.Button(btns, text="Καθαρισμός cache", command=do_clear_cache).pack(side='left', padx=6)
+
         cancel_btn = ttk.Button(btns, text="Ακύρωση λήψης", command=do_cancel, state='disabled')
         cancel_btn.pack(side='left', padx=6)
         close_btn = ttk.Button(btns, text="Κλείσιμο", command=dlg.destroy)

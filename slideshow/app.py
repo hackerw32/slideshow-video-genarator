@@ -7,6 +7,7 @@ The feature code lives in mixins; this class just composes them, so every
 import json
 import os
 import re
+import sys
 import threading
 from pathlib import Path
 import tkinter as tk
@@ -31,10 +32,13 @@ from .ui_text import TextInputMixin
 from .ui_ai_text import AITextMixin, DEFAULT_BASE_URL
 
 
-# The project root (the parent of this package) - where settings.json,
-# projects/, music/ and temp/ live. The package can be moved, the root is
-# always the folder that holds the launcher.
-APP_DIR = Path(__file__).resolve().parent.parent
+# Where settings.json, projects/, music/, temp/ and models/ live.
+# - normal run: the folder that holds the launcher (parent of this package)
+# - frozen .exe: the folder that holds the .exe, so the build is portable
+if getattr(sys, "frozen", False):
+    APP_DIR = Path(sys.executable).resolve().parent
+else:
+    APP_DIR = Path(__file__).resolve().parent.parent
 
 
 class SlideshowApp(MediaEditMixin, RenderMixin, ExportMixin, LibraryMixin, EditorsMixin, PhotoEditorMixin, EraseSettingsMixin, TimelineMixin, SettingsMixin, LayoutMixin, PreviewMixin, TextInputMixin, AITextMixin):
@@ -175,6 +179,11 @@ class SlideshowApp(MediaEditMixin, RenderMixin, ExportMixin, LibraryMixin, Edito
         local = self.app_dir / "ffmpeg"
         if (local / "ffmpeg.exe").exists():
             os.environ["PATH"] = str(local) + os.pathsep + os.environ.get("PATH", "")
+            return
+        # A frozen build can also carry ffmpeg inside its bundle.
+        bundle = getattr(sys, "_MEIPASS", None)
+        if bundle and (Path(bundle) / "ffmpeg" / "ffmpeg.exe").exists():
+            os.environ["PATH"] = str(Path(bundle) / "ffmpeg") + os.pathsep + os.environ.get("PATH", "")
 
 
     def load_settings(self):
@@ -203,6 +212,8 @@ class SlideshowApp(MediaEditMixin, RenderMixin, ExportMixin, LibraryMixin, Edito
             # the music). Each video can override this from its Edit dialog.
             "video_audio": False,
             "video_audio_volume_db": 0,
+            # Inpainting model for object erasing ("lama" or "migan").
+            "erase_model": "lama",
             # Optional AI text improvement (inert until a key is stored here;
             # the per-project instructions live in the project JSON instead).
             "ai_enabled": False, "ai_api_key": "", "ai_model": "deepseek-chat",

@@ -1,4 +1,7 @@
 """Third-party imports shared by the whole app (imported once)."""
+
+import sys
+
 try:
     from PIL import Image, ImageTk, ImageFilter, ImageDraw, ImageFont, ImageEnhance
     if not hasattr(Image, 'ANTIALIAS'):
@@ -7,8 +10,9 @@ try:
     from moviepy.editor import VideoFileClip, AudioFileClip, concatenate_audioclips
     import numpy as np
 except ImportError as e:
+    # `exit`/`sys` are not guaranteed in a frozen build, so use sys.exit.
     print(f"Missing dependencies: {e}")
-    exit(1)
+    sys.exit(1)
 
 try:
     from tkinterdnd2 import DND_FILES, TkinterDnD
