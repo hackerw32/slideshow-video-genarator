@@ -44,6 +44,28 @@ class LibraryMixin:
         self.update_media_display()
 
     # ------------------------------------------------------------ adding
+    def import_media(self):
+        """File → Import Media...: pick any mix of photos and videos at once."""
+        fs = filedialog.askopenfilenames(
+            title="Import Media",
+            filetypes=[("Media (φωτογραφίες & βίντεο)",
+                        "*.jpg *.jpeg *.png *.bmp *.mp4 *.avi *.mov *.mkv"),
+                       ("Video", "*.mp4 *.avi *.mov *.mkv"),
+                       ("Image", "*.jpg *.jpeg *.png *.bmp"),
+                       ("All files", "*.*")])
+        added = False
+        for f in fs:
+            ext = Path(f).suffix.lower()
+            if ext in ('.mp4', '.avi', '.mov', '.mkv'):
+                self.media_files.append(self._new_item("video", f))
+                added = True
+            elif ext in ('.jpg', '.jpeg', '.png', '.bmp'):
+                self.media_files.append(self._new_item("image", f))
+                added = True
+        if added:
+            self.is_modified = True
+            self.update_media_display()
+
     def handle_drop(self, data):
         files = re.findall(r'\{([^}]*)\}', data) if '{' in data else data.split()
         added = False

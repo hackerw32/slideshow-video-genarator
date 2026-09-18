@@ -150,7 +150,8 @@ class AITextMixin:
             if not out:
                 raise RuntimeError("Το AI δεν επέστρεψε κείμενο. Δοκίμασε ξανά.")
         except Exception as e:
-            self.root.after(0, lambda: self._ai_done(None, set_busy, apply_result, str(e)))
+            err = str(e)   # bound before the lambda: `e` is cleared at block end
+            self.root.after(0, lambda: self._ai_done(None, set_busy, apply_result, err))
             return
         self.root.after(0, lambda: self._ai_done(out, set_busy, apply_result, None))
 

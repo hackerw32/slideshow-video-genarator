@@ -68,7 +68,10 @@ class PreviewMixin:
             else:
                 self.root.after(0, lambda: self._clear_preview(self.preview_video_canvas))
         except Exception as e:
-            self.root.after(0, lambda: messagebox.showerror("Error", str(e)))
+            # Bind the text now: the `except ... as e` name is cleared when the
+            # block ends, so a lambda captured over `e` would fail later.
+            err = str(e)
+            self.root.after(0, lambda: messagebox.showerror("Error", err))
 
 
     @staticmethod
@@ -146,20 +149,51 @@ class PreviewMixin:
 
         frame = self._apply_watermark_overlay(frame)
         full = frame.copy()
-        cw, ch = self._preview_canvas_size(w, h)
-        disp = frame.resize((cw, ch), Image.Resampling.LANCZOS)
         # Pass the PIL image through after(); PhotoImage must be built in the
-        # main thread, not in this worker thread.
-        self.root.after(0, lambda: self._show_preview(canvas, disp, full, cw, ch))
+        # main thread, not in this worker thread. The display size is chosen
+        # later from the canvas' real size, so it follows window resizing.
+        self.root.after(0, lambda: self._show_preview(canvas, full))
 
 
-    def _show_preview(self, canvas, disp, full, cw, ch):
-        canvas.config(width=cw, height=ch)
-        canvas.delete("all")
-        tk_p = ImageTk.PhotoImage(disp)
-        canvas.create_image(cw // 2, ch // 2, image=tk_p)
-        canvas.img = tk_p          # keep a reference so the image isn't garbage-collected
+    def _show_preview(self, canvas, full):
         canvas.full_image = full   # kept for the click-to-zoom view
+        self._draw_preview_display(canvas)
+
+
+    def _on_preview_configure(self, canvas):
+        """Re-fit the displayed frame when the canvas changes size (debounced)."""
+        job = getattr(canvas, "_resize_job", None)
+        if job:
+            try:
+                self.root.after_cancel(job)
+            except Exception:
+                pass
+        canvas._resize_job = self.root.after(80, lambda: self._draw_preview_display(canvas))
+
+
+    def _draw_preview_display(self, canvas):
+        """Scale the stored full-resolution frame to the canvas' current size."""
+        full = getattr(canvas, 'full_image', None)
+        if full is None:
+            return
+        try:
+            cw, ch = canvas.winfo_width(), canvas.winfo_height()
+            if cw <= 2 or ch <= 2:
+                cw, ch = self._preview_canvas_size(full.width, full.height)
+            ar = full.width / full.height
+            if cw / ch > ar:
+                dh = ch
+                dw = max(1, int(round(ch * ar)))
+            else:
+                dw = cw
+                dh = max(1, int(round(cw / ar)))
+            disp = full.resize((dw, dh), Image.Resampling.LANCZOS)
+            tk_p = ImageTk.PhotoImage(disp)
+            canvas.delete("all")
+            canvas.create_image(cw // 2, ch // 2, image=tk_p)
+            canvas.img = tk_p   # keep a reference so it isn't garbage-collected
+        except tk.TclError:
+            pass
 
 
     def _show_preview_zoom(self, canvas):

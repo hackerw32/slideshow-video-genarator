@@ -30,8 +30,11 @@ class SettingsMixin:
         file_menu = tk.Menu(menubar, tearoff=0)
         menubar.add_cascade(label="File", menu=file_menu)
         file_menu.add_command(label="New Project", command=self.new_project)
+        file_menu.add_command(label="Import Media...", command=self.import_media)
+        file_menu.add_separator()
         file_menu.add_command(label="Load Project", command=self.load_project)
         file_menu.add_command(label="Save Project", command=self.save_project)
+        file_menu.add_command(label="Project Text...", command=self.open_text_window)
         
         settings_menu = tk.Menu(menubar, tearoff=0)
         menubar.add_cascade(label="Settings", menu=settings_menu)
@@ -42,6 +45,8 @@ class SettingsMixin:
         settings_menu.add_command(label="AI / DeepSeek (Βελτίωση κειμένου)", command=self.show_ai_settings)
         settings_menu.add_command(label="Σβήσιμο αντικειμένων (μοντέλο AI)", command=self.show_erase_settings)
         settings_menu.add_command(label="Watermark / Logo Settings", command=self.show_watermark_settings)
+        settings_menu.add_command(label="Project Watermark / Logo (override)",
+                                  command=self.show_project_watermark)
 
 
     def _scrollable(self, dialog, canvas_height=560):

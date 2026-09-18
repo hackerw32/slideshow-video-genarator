@@ -33,11 +33,17 @@ class RenderMixin:
     """Turning one photo/video frame into the final canvas (fit, blur, text, pan)."""
 
     def get_text_for(self, m_type):
-        """Text overlay for a media type: videos' text by default; photos get
-        their own text when the right field is filled, otherwise they share it."""
-        if m_type == "image" and self.project_text_photos.strip():
-            return self.project_text_photos
-        return self.project_text_videos
+        """Text overlay for a media type.
+
+        Two separate texts exist (videos / photos). If the user filled only one
+        of them, that text is used for BOTH types; if both are filled, each type
+        uses its own.
+        """
+        videos = self.project_text_videos or ""
+        photos = self.project_text_photos or ""
+        if m_type == "image":
+            return photos if photos.strip() else videos
+        return videos if videos.strip() else photos
 
 
     def render_text_on_image(self, img, text, w, h):
@@ -249,12 +255,12 @@ class RenderMixin:
         return float(image_duration)
 
 
-    def _fit_image_logic(self, img, tw, th, m_type):
+    def _fit_image_logic(self, img, tw, th, m_type, text=None):
         img = img.convert("RGB")  # keep every downstream op (blur, resize, paste, rawvideo) in RGB
         auto_pos = self.settings.get("auto_position_photos" if m_type == "image" else "auto_position_videos", False)
         iw, ih = img.size
         lh = self.settings["font_size"] + 5
-        text_here = self.get_text_for(m_type)
+        text_here = self.get_text_for(m_type) if text is None else text
         _, wrapped_lines = self._wrap_text_lines(text_here, tw) if text_here.strip() else ([], [])
         
         bg_m = self.settings["background_mode"]

@@ -144,14 +144,22 @@ class SlideshowApp(MediaEditMixin, RenderMixin, ExportMixin, LibraryMixin, Edito
                 pass
 
         def apply_sash():
-            sash = self.settings.get("library_sash")
-            if sash is None or not hasattr(self, "main_paned"):
+            if not hasattr(self, "main_paned"):
                 return
+            width = self.main_paned.winfo_width()
+            if width <= 1:
+                width = self.root.winfo_width()
+            sash = self.settings.get("library_sash")
+            if sash is None:
+                pos = max(200, width // 2)          # default: half and half
+            else:
+                # never let a stale value hide one of the two panels
+                pos = max(int(width * 0.2), min(int(width * 0.8), int(sash)))
             try:
-                self.main_paned.sashpos(0, int(sash))
+                self.main_paned.sashpos(0, pos)
             except tk.TclError:
                 pass
-        self.root.after(120, apply_sash)
+        self.root.after(150, apply_sash)
 
 
     def _save_window_state(self):
@@ -305,7 +313,29 @@ class SlideshowApp(MediaEditMixin, RenderMixin, ExportMixin, LibraryMixin, Edito
 
 
     def save_project(self):
+        """Save the project. Returns True when it was saved, False otherwise.
+
+        A project without a name is refused (that used to create a stray
+        ``.json`` file and an empty entry in the Load list) and the name field
+        is focused so the user can fix it.
+        """
         n = self.name_var.get().strip()
+        if not n:
+            messagebox.showwarning(
+                "Λείπει το όνομα",
+                "Γράψε πρώτα ένα όνομα για το project (πεδίο «Project Name», πάνω-δεξιά) "
+                "και μετά πάτα Αποθήκευση.")
+            self._focus_name_entry()
+            return False
+
+        safe = re.sub(r'\W+', '_', n).strip('_')
+        if not safe:
+            messagebox.showwarning(
+                "Μη έγκυρο όνομα",
+                "Το όνομα πρέπει να περιέχει τουλάχιστον ένα γράμμα ή αριθμό.")
+            self._focus_name_entry()
+            return False
+
         data = {
             "name": n,
             "media_files": self.media_files,
@@ -316,11 +346,27 @@ class SlideshowApp(MediaEditMixin, RenderMixin, ExportMixin, LibraryMixin, Edito
             "out": self.out_var.get(),
             "project_watermark": self.project_watermark
         }
-        p = self.projects_dir / f"{re.sub(r'\W+', '_', n)}.json"
-        with open(p, 'w', encoding='utf-8') as f:
-            json.dump(data, f, indent=2, ensure_ascii=False)
+        p = self.projects_dir / f"{safe}.json"
+        try:
+            with open(p, 'w', encoding='utf-8') as f:
+                json.dump(data, f, indent=2, ensure_ascii=False)
+        except OSError as e:
+            messagebox.showerror("Σφάλμα", f"Δεν μπόρεσα να αποθηκεύσω το project:\n{e}")
+            return False
         self.is_modified = False
         messagebox.showinfo("Saved", "Project saved.")
+        return True
+
+
+    def _focus_name_entry(self):
+        entry = getattr(self, "name_entry", None)
+        if entry is None:
+            return
+        try:
+            entry.focus_set()
+            entry.selection_range(0, tk.END)
+        except tk.TclError:
+            pass
 
 
     def load_project(self):
@@ -348,15 +394,20 @@ class SlideshowApp(MediaEditMixin, RenderMixin, ExportMixin, LibraryMixin, Edito
         scrollbar.pack(side='right', fill='y')
         
         pfs = sorted(list(self.projects_dir.glob("*.json")), key=os.path.getmtime, reverse=True)
+
+        def display_name(p):
+            # A project saved without a name (older bug) has an empty stem.
+            return p.stem or "(χωρίς όνομα)"
+
         for p in pfs:
-            lb.insert(tk.END, p.stem)
+            lb.insert(tk.END, display_name(p))
         
         def filter_projects(*args):
             search_text = search_var.get().lower()
             lb.delete(0, tk.END)
             for p in pfs:
-                if search_text in p.stem.lower():
-                    lb.insert(tk.END, p.stem)
+                if search_text in display_name(p).lower():
+                    lb.insert(tk.END, display_name(p))
         
         search_var.trace_add('write', filter_projects)
         
@@ -366,7 +417,7 @@ class SlideshowApp(MediaEditMixin, RenderMixin, ExportMixin, LibraryMixin, Edito
             # Find the actual index in pfs matching the selected display name
             selected_name = lb.get(lb.curselection()[0])
             for idx, p in enumerate(pfs):
-                if p.stem == selected_name:
+                if display_name(p) == selected_name:
                     with open(p, 'r', encoding='utf-8') as f:
                         data = json.load(f)
                         self.name_var.set(data.get("name", ""))
@@ -391,7 +442,7 @@ class SlideshowApp(MediaEditMixin, RenderMixin, ExportMixin, LibraryMixin, Edito
                 return
             selected_name = lb.get(lb.curselection()[0])
             for old_path in pfs:
-                if old_path.stem == selected_name:
+                if display_name(old_path) == selected_name:
                     with open(old_path, 'r', encoding='utf-8') as f:
                         data = json.load(f)
                     data["name"] = data.get("name", "") + " -copy"
@@ -415,7 +466,7 @@ class SlideshowApp(MediaEditMixin, RenderMixin, ExportMixin, LibraryMixin, Edito
                 return
             selected_name = lb.get(lb.curselection()[0])
             for idx, old_path in enumerate(pfs):
-                if old_path.stem == selected_name:
+                if display_name(old_path) == selected_name:
                     current_name = old_path.stem.replace('_', ' ')
                     new_name = simpledialog.askstring("Rename Project", "New name:", initialvalue=current_name)
                     if new_name:
@@ -447,7 +498,7 @@ class SlideshowApp(MediaEditMixin, RenderMixin, ExportMixin, LibraryMixin, Edito
                 return
             selected_name = lb.get(lb.curselection()[0])
             for old_path in pfs:
-                if old_path.stem == selected_name:
+                if display_name(old_path) == selected_name:
                     if messagebox.askyesno("Delete Project", f"Delete project '{selected_name}'? This cannot be undone."):
                         old_path.unlink()
                         pfs.remove(old_path)
@@ -490,8 +541,9 @@ class SlideshowApp(MediaEditMixin, RenderMixin, ExportMixin, LibraryMixin, Edito
             # Cancel - μην κλείσεις
             return
         elif answer:
-            # Yes - αποθήκευσε και κλείσε
-            self.save_project()
+            # Yes - αποθήκευσε και κλείσε (αν λείπει όνομα, μείνε ανοιχτό)
+            if not self.save_project():
+                return
             self.root.destroy()
         else:
             # No - κλείσε χωρίς αποθήκευση

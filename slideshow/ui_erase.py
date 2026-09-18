@@ -444,7 +444,8 @@ class EraseSettingsMixin:
                                lambda: cancel["v"])
                 self.root.after(0, lambda: finished(None))
             except Exception as e:
-                self.root.after(0, lambda: finished(str(e)))
+                err = str(e)   # bound before the lambda: `e` is cleared at block end
+                self.root.after(0, lambda: finished(err))
 
         def finished(err):
             set_busy(False)
