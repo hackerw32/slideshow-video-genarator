@@ -3,3 +3,8 @@ pillow>=10.0.0
 numpy>=1.24.0
 tkinterdnd2>=0.3.0
 windnd>=1.0.2
+# Local object erasing (Settings -> "Σβήσιμο αντικειμένων").
+# opencv-python also powers the instant fallback; onnxruntime runs the LaMa
+# model on the CPU. Without either of them the rest of the app still works.
+opencv-python>=4.8
+onnxruntime>=1.16

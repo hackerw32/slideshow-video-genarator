@@ -1,0 +1,37 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+build/
+dist/
+
+# Runtime data / user files (never commit - settings.json holds the AI API key)
+settings.json
+music_tracker.json
+projects/
+music/
+models/
+temp/
+erase_cache/
+ffmpeg/
+install_log.txt
+logo.jpg
+
+# Build output
+release/
+*.spec
+
+# Backups / old versions
+old files/
+old/
+
+# Tool data
+.reasonix/
+
+# OS / editor
+Thumbs.db
+Desktop.ini
+.vscode/
+.idea/

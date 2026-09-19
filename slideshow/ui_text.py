@@ -97,6 +97,25 @@ class TextInputMixin:
         for t in (txt_v, txt_p, instr):
             t.edit_reset()   # so Ctrl+Z doesn't wipe the loaded text
             self._bind_text_shortcuts(t)
+            # Right-click menu (the user relies on "Paste" here).
+            menu = tk.Menu(t, tearoff=0)
+            menu.add_command(label="Copy",
+                             command=lambda w=t: self._do_text_shortcut(w, "copy"))
+            menu.add_command(label="Paste",
+                             command=lambda w=t: self._do_text_shortcut(w, "paste"))
+            menu.add_command(label="Cut",
+                             command=lambda w=t: self._do_text_shortcut(w, "cut"))
+            menu.add_command(label="Undo",
+                             command=lambda w=t: self._do_text_shortcut(w, "undo"))
+
+            def popup(e, m=menu, w=t):
+                try:
+                    w.focus_set()
+                except tk.TclError:
+                    pass
+                m.tk_popup(e.x_root, e.y_root)
+                return "break"
+            t.bind("<Button-3>", popup, add="+")
 
         # -------------------- helpers
         def quick_paste(t):
@@ -225,14 +244,27 @@ class TextInputMixin:
         for t in (txt_v, txt_p, instr):
             t.bind("<FocusIn>", remember_text, add="+")
 
-        def paste_anywhere(_e=None):
-            w = self.root.focus_get()
-            if not isinstance(w, tk.Text):
-                w = last_text["w"]
-            self._do_text_shortcut(w, "paste")
+        # Ctrl+C/V/X/Z work even when the focus is on a button, and even when a
+        # non-Latin keyboard layout (e.g. Greek) changes the keysym letter:
+        # on a Greek layout the V key reports "omega", C "psi", X "chi", Z "zeta".
+        _CTRL_KEYS = {
+            "v": "paste", "omega": "paste",
+            "c": "copy", "psi": "copy",
+            "x": "cut", "chi": "cut",
+            "z": "undo", "zeta": "undo",
+        }
+
+        def on_ctrl_key(e):
+            if not (e.state & 0x0004):          # Control not held
+                return None
+            action = _CTRL_KEYS.get((e.keysym or "").lower())
+            if not action:
+                return None
+            widget = e.widget if isinstance(e.widget, tk.Text) else last_text["w"]
+            self._do_text_shortcut(widget, action)
             return "break"
-        dialog.bind("<Control-v>", paste_anywhere)
-        dialog.bind("<Control-V>", paste_anywhere)
+
+        dialog.bind("<KeyPress>", on_ctrl_key, add="+")
 
         initial_job["id"] = dialog.after(200, render_previews)
 
@@ -315,9 +347,12 @@ class TextInputMixin:
 
 
     def _do_text_shortcut(self, txt, action):
-        # Direct clipboard operations - this Tk build has NO class binding for
-        # Ctrl+C/V/X on Text widgets, so event_generate("<<Copy>>") was never
-        # guaranteed. Doing it directly always works.
+        """Ctrl+C / Ctrl+V / Ctrl+X / Ctrl+Z for a Text widget.
+
+        Copy/cut/paste work directly on the clipboard (this Tk build has no
+        class bindings for Ctrl+C/V/X on Text). ``<<Paste>>`` is only a fallback
+        for clipboards that refuse ``clipboard_get``.
+        """
         try:
             if action == "copy":
                 if txt.tag_ranges(tk.SEL):
@@ -332,14 +367,14 @@ class TextInputMixin:
                 if clip is not None:
                     sel = txt.tag_ranges(tk.SEL)
                     if sel:
+                        # Replace the selection, inserting where it started.
                         txt.delete(sel[0], sel[1])
                         txt.insert(sel[0], clip)
                     else:
                         txt.insert(tk.INSERT, clip)
                 else:
-                    # Some clipboards refuse clipboard_get(): let Tk try itself.
                     try:
-                        txt.event_generate("<<Paste>>")
+                        txt.event_generate("<<Paste>>", when="now")
                     except tk.TclError:
                         pass
             elif action == "cut":
