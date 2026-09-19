@@ -162,8 +162,8 @@
 - **Project Name**: πεδίο πάνω-αριστερά, πάνω από τη βιβλιοθήκη media.
 - **Ctrl+N / Ctrl+O / Ctrl+S**: Νέο / Άνοιγμα / Αποθήκευση. **Ctrl+Z / Ctrl+Y**: Undo / Redo.
   **Delete**: διαγραφή επιλεγμένων. **F5**: refresh preview.
-- Η κύρια οθόνη ξεκινά **μισή-μισή** (αριστερά media, δεξιά preview/κουμπιά) και **θυμάται** το μέγεθος/θέση του
-  παραθύρου, το πλάτος του splitter και το List/Icons.
+- Η κύρια οθόνη είναι **μόνιμα μισή-μισή** (αριστερά media, δεξιά preview/κουμπιά) — **χωρίς draggable splitter**.
+  Θυμάται το μέγεθος/θέση του παραθύρου και το List/Icons.
 - Τα **settings dialogs** έχουν σταθερό, **resizable** παράθυρο με **scrollbar** όταν το περιεχόμενο είναι μεγάλο.
 
 ---
@@ -395,7 +395,7 @@ python "slideshow_app v4.py"
 - **Βιβλιοθήκη**: **πολλαπλή επιλογή** (Ctrl/Shift), **drag & drop αναδιάταξη**, **διάρκεια** βίντεο, **tooltips**,
   επιβεβαίωση διαγραφής και **Undo/Redo**.
 - **Toolbar + συντομεύσεις** (Ctrl+S/O/N/Z/Y, Delete, F5) και **auto-refresh** του preview.
-- **Cancel Export** και **μνήμη** μεγέθους/θέσης παραθύρου & splitter.
+- **Cancel Export** και **μνήμη** μεγέθους/θέσης παραθύρου· σταθερή διάταξη 50/50 χωρίς splitter.
 - **Text watermark** (όνομα/τηλέφωνο) με χρώμα, εκτός από το logo· **scrollable** settings dialogs.
 - **Video Settings με καρτέλες** για ευκολότερη πλοήγηση.
 - **AI βελτίωση κειμένου** (DeepSeek) με παγκόσμιες και ανά-project οδηγίες.
