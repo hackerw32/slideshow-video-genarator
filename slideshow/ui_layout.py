@@ -35,16 +35,19 @@ class LayoutMixin:
     def setup_gui(self):
         self._build_toolbar()
 
-        paned = ttk.PanedWindow(self.root, orient=tk.HORIZONTAL)
-        self.main_paned = paned
-        paned.pack(fill=tk.BOTH, expand=True, padx=5, pady=(0, 5))
-        
+        # Two equal columns, always 50/50 and never draggable (no sash).
+        container = ttk.Frame(self.root)
+        container.pack(fill=tk.BOTH, expand=True, padx=5, pady=(0, 5))
+        container.columnconfigure(0, weight=1, uniform="half")
+        container.columnconfigure(1, weight=1, uniform="half")
+        container.rowconfigure(0, weight=1)
+
         # Left Panel: project name + library
-        left = ttk.Frame(paned, width=1000)
-        paned.add(left, weight=1)
+        left = ttk.Frame(container)
+        left.grid(row=0, column=0, sticky='nsew', padx=(0, 4))
         # Right Panel: Preview & ALL Controls
-        right = ttk.Frame(paned, width=500)
-        paned.add(right, weight=1)
+        right = ttk.Frame(container)
+        right.grid(row=0, column=1, sticky='nsew', padx=(4, 0))
 
         name_frame = ttk.Frame(left)
         name_frame.pack(fill='x', padx=10, pady=(10, 2))

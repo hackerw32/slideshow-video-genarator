@@ -143,24 +143,6 @@ class SlideshowApp(MediaEditMixin, RenderMixin, ExportMixin, LibraryMixin, Edito
             except tk.TclError:
                 pass
 
-        def apply_sash():
-            if not hasattr(self, "main_paned"):
-                return
-            width = self.main_paned.winfo_width()
-            if width <= 1:
-                width = self.root.winfo_width()
-            sash = self.settings.get("library_sash")
-            if sash is None:
-                pos = max(200, width // 2)          # default: half and half
-            else:
-                # never let a stale value hide one of the two panels
-                pos = max(int(width * 0.2), min(int(width * 0.8), int(sash)))
-            try:
-                self.main_paned.sashpos(0, pos)
-            except tk.TclError:
-                pass
-        self.root.after(150, apply_sash)
-
 
     def _save_window_state(self):
         try:
@@ -168,11 +150,6 @@ class SlideshowApp(MediaEditMixin, RenderMixin, ExportMixin, LibraryMixin, Edito
                 self.settings["window_geometry"] = self.root.geometry()
         except tk.TclError:
             pass
-        if hasattr(self, "main_paned"):
-            try:
-                self.settings["library_sash"] = self.main_paned.sashpos(0)
-            except tk.TclError:
-                pass
         self.settings["view_mode"] = self.view_mode.get()
 
 
