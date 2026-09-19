@@ -3,19 +3,20 @@
 Project: **Slideshow Video Creator Pro** (Python + Tkinter, Windows).
 
 ## Ροή εργασίας (ΣΗΜΑΝΤΙΚΟ)
-- **Κάνε τις αλλαγές κώδικα ΕΔΩ** σε αυτόν τον φάκελο (το καθαρό repo), **ποτέ** απευθείας στον φάκελο που τρέχει ο χρήστης.
-- Αφού ολοκληρώσεις και επαληθεύσεις:
+- **Κάνε τις αλλαγές κώδικα στο καθαρό repo** `C:\Users\George\Desktop\python projects\slideshow app`
+  (ανεξάρτητα από το πού τρέχει η συνεδρία), **ποτέ** απευθείας στον φάκελο που τρέχει ο χρήστης.
+- Αφού ολοκληρώσεις και επαληθεύσεις (μέσα στο καθαρό repo):
   1. `git add -A`
   2. `git commit -m "σύντομο αγγλικό μήνυμα"`
   3. `git push origin main` — τα credentials είναι αποθηκευμένα, το push δεν ζητάει prompt.
-  4. **Αντίγραψε τα αρχεία που άλλαξαν** στον φάκελο που τρέχει ο χρήστης (βλ. «Τοποθεσίες»).
+  4. **Αντίγραψε τα αρχεία που άλλαξαν** στον φάκελο χρήστη `slideshow_rita_aggelia` (βλ. «Τοποθεσίες»).
 - **Ποτέ μην κάνεις commit** δεδομένα χρήστη: `settings.json` (περιέχει το API key),
   `projects/`, `music/`, `models/`, `temp/`, `erase_cache/`, `ffmpeg/`, `dist/`, `release/`, `logo.jpg`.
   Είναι ήδη στο `.gitignore`.
 
 ## Τοποθεσίες
 - **GitHub**: https://github.com/hackerw32/slideshow-video-genarator (branch `main`)
-- **Καθαρό repo (αυτός ο φάκελος)**: `C:\Users\George\Desktop\python projects\slideshow app`
+- **Καθαρό repo (εδώ γίνονται οι αλλαγές και το push)**: `C:\Users\George\Desktop\python projects\slideshow app`
 - **Φάκελος χρήστη (runtime / sync target)**: `C:\Users\George\Desktop\python projects\slideshow_rita_aggelia`
   (ΔΕΝ είναι git repo — μην τρέχεις git εκεί.)
 
